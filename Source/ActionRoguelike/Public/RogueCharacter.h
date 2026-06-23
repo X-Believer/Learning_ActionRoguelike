@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "RogueCharacter.generated.h"
 
+class URogueInteractionComponent;
 class UCameraComponent;
 class USpringArmComponent;
 
@@ -25,7 +26,24 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	UCameraComponent* CameraComp;
 	
+	UPROPERTY(VisibleAnywhere)
+	URogueInteractionComponent* InteractionComp;
+	
+	UPROPERTY(EditAnywhere, Category="Combat")
+	TSubclassOf<AActor> ProjectileClass;
+	
+	UPROPERTY(EditAnywhere, Category="Combat")
+	UAnimMontage* AttackAnim;
+	
+	FTimerHandle FTimerHandle_PrimaryAttack;
+	
 	void MoveForward(float AxisValue);
+	void MoveRight(float AxisValue);
+	
+	void PrimaryAttack();
+	void PrimaryInteract();
+	
+	void PrimaryAttack_TimeElapsed();
 
 public:	
 	virtual void Tick(float DeltaTime) override;
