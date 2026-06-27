@@ -5,6 +5,7 @@
 
 #include "RogueAttributeComponent.h"
 #include "RogueInteractionComponent.h"
+#include "RogueProjectileBase.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -34,6 +35,13 @@ void ARogueCharacter::BeginPlay()
 	
 }
 
+void ARogueCharacter::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+	
+	AttributeComp->OnHealthChanged.AddDynamic(this, &ARogueCharacter::OnHealthChanged);
+}
+
 void ARogueCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
@@ -51,6 +59,8 @@ void ARogueCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("PrimaryAttack", IE_Pressed, this, &ARogueCharacter::PrimaryAttack);
+	PlayerInputComponent->BindAction("BlackHoleAttack", IE_Pressed, this, &ARogueCharacter::BlackHoleAttack);
+	PlayerInputComponent->BindAction("Dash", IE_Pressed, this, &ARogueCharacter::Dash);
 	PlayerInputComponent->BindAction("PrimaryInteract", IE_Pressed, this, &ARogueCharacter::PrimaryInteract);
 }
 
@@ -76,14 +86,76 @@ void ARogueCharacter::PrimaryAttack()
 	PlayAnimMontage(AttackAnim);
 	
 	GetWorldTimerManager().SetTimer(
-		FTimerHandle_PrimaryAttack,
+		PrimaryAttackTimer,
 		this,
 		&ARogueCharacter::PrimaryAttack_TimeElapsed,
 		0.2f,
 		false
 	);
-	
-	// GetWorldTimerManager().ClearTimer(FTimerHandle_PrimaryAttack);
+}
+
+void ARogueCharacter::SpawnProjectile(TSubclassOf<ARogueProjectileBase> ClassToSpawn)
+{
+	if (ensure(ClassToSpawn))
+	{
+		FVector HandLocation = GetMesh()->GetSocketLocation("Muzzle_01");
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnParams.Instigator = this;
+		
+		FCollisionShape Shape;
+		Shape.SetSphere(20.f);
+		
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this);
+		
+		FCollisionObjectQueryParams ObjectQueryParams;
+		ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldDynamic);
+		ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
+		ObjectQueryParams.AddObjectTypesToQuery(ECC_Pawn);
+		
+		FVector TraceStart = CameraComp->GetComponentLocation();
+		FVector TraceEnd = TraceStart + (GetControlRotation().Vector() * 5000.f);
+		
+		FHitResult Hit;
+		if (GetWorld()->SweepSingleByObjectType(Hit, TraceStart, TraceEnd, FQuat::Identity, ObjectQueryParams, Shape, QueryParams))
+		{
+			TraceEnd = Hit.ImpactPoint;
+		}
+		
+		FRotator ProjectileRotation = FRotationMatrix::MakeFromX(TraceEnd - HandLocation).Rotator();
+		
+		FTransform SpawnTransform = FTransform(ProjectileRotation, HandLocation);
+		
+		GetWorld()->SpawnActor<AActor>(ClassToSpawn, SpawnTransform, SpawnParams);
+	}
+}
+
+void ARogueCharacter::PrimaryAttack_TimeElapsed()
+{
+	SpawnProjectile(NormalProjectileClass);
+}
+
+void ARogueCharacter::BlackHoleAttack()
+{
+	PlayAnimMontage(AttackAnim);
+	GetWorldTimerManager().SetTimer(BlackHoleAttackTimer, this, &ARogueCharacter::BlackHoleAttack_TimeElapsed, AttackAnimDelay);
+}
+
+void ARogueCharacter::BlackHoleAttack_TimeElapsed()
+{
+	SpawnProjectile(BlackHoleProjectileClass);
+}
+
+void ARogueCharacter::Dash()
+{
+	PlayAnimMontage(AttackAnim);
+	GetWorldTimerManager().SetTimer(DashTimer, this, &ARogueCharacter::Dash_TimeElapsed, AttackAnimDelay);
+}
+
+void ARogueCharacter::Dash_TimeElapsed()
+{
+	SpawnProjectile(DashProjectileClass);
 }
 
 void ARogueCharacter::PrimaryInteract()
@@ -94,19 +166,12 @@ void ARogueCharacter::PrimaryInteract()
 	}
 }
 
-void ARogueCharacter::PrimaryAttack_TimeElapsed()
+void ARogueCharacter::OnHealthChanged(AActor* InstigatorActor, URogueAttributeComponent* OwningComp, float NewHealth, float Delta)
 {
-	if (ensure(ProjectileClass))
+	if (NewHealth <= 0.0f && Delta < 0.0f)
 	{
-		FVector HandLocation = GetMesh()->GetSocketLocation("Muzzle_01");
-	
-		FTransform SpawnTransform = FTransform(GetControlRotation(), HandLocation);
-	
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnParams.Instigator = this;
-	
-		GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTransform, SpawnParams);
+		APlayerController* PC = Cast<APlayerController>(GetController());
+		DisableInput(PC);
 	}
 }
 

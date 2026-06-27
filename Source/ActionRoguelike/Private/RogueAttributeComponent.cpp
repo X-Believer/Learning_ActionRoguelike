@@ -16,3 +16,8 @@ bool URogueAttributeComponent::ApplyHealthChange(float Delta)
 	return true;
 }
 
+bool URogueAttributeComponent::IsAlive() const
+{
+	return Health > 0.0f;
+}
+

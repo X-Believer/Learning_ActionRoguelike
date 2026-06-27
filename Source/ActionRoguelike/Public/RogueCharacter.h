@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "RogueCharacter.generated.h"
 
+class ARogueProjectileBase;
 class URogueAttributeComponent;
 class URogueInteractionComponent;
 class UCameraComponent;
@@ -19,8 +20,30 @@ class ACTIONROGUELIKE_API ARogueCharacter : public ACharacter
 public:
 	ARogueCharacter();
 	virtual void BeginPlay() override;
+	virtual void PostInitializeComponents() override;
+	virtual void Tick(float DeltaTime) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
 protected:
+	void MoveForward(float AxisValue);
+	void MoveRight(float AxisValue);
+	
+	void SpawnProjectile(TSubclassOf<ARogueProjectileBase> ProjectileClass);
+	
+	void PrimaryAttack();
+	void PrimaryAttack_TimeElapsed();
+	
+	void BlackHoleAttack();
+	void BlackHoleAttack_TimeElapsed();
+	
+	void Dash();
+	void Dash_TimeElapsed();
+	
+	void PrimaryInteract();
+	
+	UFUNCTION()
+	void OnHealthChanged(AActor* InstigatorActor, URogueAttributeComponent* OwningComp, float NewHealth, float Delta);
+	
 	UPROPERTY(VisibleAnywhere)
 	USpringArmComponent* SpringArmComp;
 	
@@ -34,25 +57,20 @@ protected:
 	URogueAttributeComponent* AttributeComp;
 	
 	UPROPERTY(EditAnywhere, Category="Combat")
-	TSubclassOf<AActor> ProjectileClass;
+	TSubclassOf<ARogueProjectileBase> NormalProjectileClass;
+	
+	UPROPERTY(EditAnywhere, Category="Combat")
+	TSubclassOf<ARogueProjectileBase> BlackHoleProjectileClass;
+	
+	UPROPERTY(EditAnywhere, Category="Combat")
+	TSubclassOf<ARogueProjectileBase> DashProjectileClass;
 	
 	UPROPERTY(EditAnywhere, Category="Combat")
 	UAnimMontage* AttackAnim;
 	
-	FTimerHandle FTimerHandle_PrimaryAttack;
+	FTimerHandle PrimaryAttackTimer;
+	FTimerHandle BlackHoleAttackTimer;
+	FTimerHandle DashTimer;
+	float AttackAnimDelay = 0.2f;
 	
-	void MoveForward(float AxisValue);
-	void MoveRight(float AxisValue);
-	
-	void PrimaryAttack();
-	void PrimaryInteract();
-	
-	void PrimaryAttack_TimeElapsed();
-	
-
-public:	
-	virtual void Tick(float DeltaTime) override;
-
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
 };
