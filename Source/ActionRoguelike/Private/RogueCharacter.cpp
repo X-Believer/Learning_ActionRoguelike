@@ -3,6 +3,7 @@
 
 #include "RogueCharacter.h"
 
+#include "RogueAttributeComponent.h"
 #include "RogueInteractionComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -23,12 +24,34 @@ ARogueCharacter::ARogueCharacter()
 	bUseControllerRotationYaw = false;
 	
 	InteractionComp = CreateDefaultSubobject<URogueInteractionComponent>(TEXT("InteractionComp"));
+	
+	AttributeComp = CreateDefaultSubobject<URogueAttributeComponent>(TEXT("AttributeComp"));
 }
 
 void ARogueCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	
+}
+
+void ARogueCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+}
+
+void ARogueCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	PlayerInputComponent->BindAxis("MoveForward", this, &ARogueCharacter::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ARogueCharacter::MoveRight);
+	PlayerInputComponent->BindAxis("Turn", this, &ARogueCharacter::AddControllerYawInput);
+	PlayerInputComponent->BindAxis("LookUp", this, &ARogueCharacter::AddControllerPitchInput);
+	
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
+	PlayerInputComponent->BindAction("PrimaryAttack", IE_Pressed, this, &ARogueCharacter::PrimaryAttack);
+	PlayerInputComponent->BindAction("PrimaryInteract", IE_Pressed, this, &ARogueCharacter::PrimaryInteract);
 }
 
 void ARogueCharacter::MoveForward(float AxisValue)
@@ -73,34 +96,17 @@ void ARogueCharacter::PrimaryInteract()
 
 void ARogueCharacter::PrimaryAttack_TimeElapsed()
 {
-	FVector HandLocation = GetMesh()->GetSocketLocation("Muzzle_01");
+	if (ensure(ProjectileClass))
+	{
+		FVector HandLocation = GetMesh()->GetSocketLocation("Muzzle_01");
 	
-	FTransform SpawnTransform = FTransform(GetControlRotation(), HandLocation);
+		FTransform SpawnTransform = FTransform(GetControlRotation(), HandLocation);
 	
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	SpawnParams.Instigator = this;
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnParams.Instigator = this;
 	
-	GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTransform, SpawnParams);
-}
-
-void ARogueCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-}
-
-void ARogueCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	PlayerInputComponent->BindAxis("MoveForward", this, &ARogueCharacter::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &ARogueCharacter::MoveRight);
-	PlayerInputComponent->BindAxis("Turn", this, &ARogueCharacter::AddControllerYawInput);
-	PlayerInputComponent->BindAxis("LookUp", this, &ARogueCharacter::AddControllerPitchInput);
-	
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("PrimaryAttack", IE_Pressed, this, &ARogueCharacter::PrimaryAttack);
-	PlayerInputComponent->BindAction("PrimaryInteract", IE_Pressed, this, &ARogueCharacter::PrimaryInteract);
+		GetWorld()->SpawnActor<AActor>(ProjectileClass, SpawnTransform, SpawnParams);
+	}
 }
 

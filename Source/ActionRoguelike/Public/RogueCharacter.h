@@ -6,6 +6,7 @@
 #include "GameFramework/Character.h"
 #include "RogueCharacter.generated.h"
 
+class URogueAttributeComponent;
 class URogueInteractionComponent;
 class UCameraComponent;
 class USpringArmComponent;
@@ -29,6 +30,9 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	URogueInteractionComponent* InteractionComp;
 	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	URogueAttributeComponent* AttributeComp;
+	
 	UPROPERTY(EditAnywhere, Category="Combat")
 	TSubclassOf<AActor> ProjectileClass;
 	
@@ -44,6 +48,7 @@ protected:
 	void PrimaryInteract();
 	
 	void PrimaryAttack_TimeElapsed();
+	
 
 public:	
 	virtual void Tick(float DeltaTime) override;
