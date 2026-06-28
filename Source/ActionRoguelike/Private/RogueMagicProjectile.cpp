@@ -17,14 +17,13 @@ void ARogueMagicProjectile::BeginPlay()
 
 void ARogueMagicProjectile::OnActorHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherHitComponent, FVector NormalImpulse, const FHitResult& Hit)
 {
-	Super::OnActorHit(HitComponent, OtherActor, OtherHitComponent, NormalImpulse, Hit);
 	if (OtherActor && OtherActor != GetInstigator())
 	{
 		URogueAttributeComponent* AttributeComp = Cast<URogueAttributeComponent>(OtherActor->GetComponentByClass(URogueAttributeComponent::StaticClass()));
 		if (AttributeComp)
 		{
 			AttributeComp->ApplyHealthChange(-20.f);
-			Destroy();
 		}
 	}
+	Super::OnActorHit(HitComponent, OtherActor, OtherHitComponent, NormalImpulse, Hit);
 }
