@@ -51,10 +51,7 @@ void ARogueProjectileBase::OnActorHit(UPrimitiveComponent* HitComponent, AActor*
 
 void ARogueProjectileBase::Explode_Implementation()
 {
-	if (ensure(IsPendingKill()))
-	{
-		UGameplayStatics::SpawnEmitterAtLocation(this, ImpactVFX, GetActorLocation(), GetActorRotation());
-		Destroy();
-	}
+	UGameplayStatics::SpawnEmitterAtLocation(this, ImpactVFX, GetActorLocation(), GetActorRotation());
+	Destroy();
 }
 
